@@ -1,4 +1,3 @@
-import os
 import platform
 import setuptools
 
@@ -11,7 +10,7 @@ if platform.platform() == 'Windows':
 
 setuptools.setup(
     name="vargo",
-    version="",
+    version="0.1",
     author="Baptiste GODEAU",
     author_email="baptiste.ge.godeau@gmail.com",
     description="Python visual interface to manage argocd from the terminal",
