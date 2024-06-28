@@ -3,7 +3,7 @@ import os
 
 import vargo
 
-VARGO_CONF_PATH = os.path.join(vargo.__file__[:-11], 'VARGO_conf.json')
+VARGO_CONF_PATH = os.path.join(vargo.__file__[:-11], 'vargo_conf.yaml')
 
 # VARGO_VERSION = vargo.__version__
 VARGO_VERSION = "0.1"
@@ -113,3 +113,22 @@ def curses_init_color_pairs():
 
     curses.init_pair(14, curses.COLOR_WHITE, 234)     # WHITE     ON BLACK   # MESSAGE
     curses.init_pair(24, 234, curses.COLOR_WHITE)     # BLACK     ON WHITE   # MESSAGE SELECTED
+
+class ApplicationReport:
+    def __init__(self, namespace: str, name: str, sync: str, health: str):
+        self.namespace = namespace
+        self.name = name
+        self.sync = sync
+        self.health = health
+    
+    def get_namespace(self):
+        return self.namespace if self.namespace is not None else ""
+
+    def get_name(self):
+        return self.name if self.name is not None else ""
+    
+    def get_sync(self):
+        return self.sync if self.sync is not None else ""
+    
+    def get_health(self):
+        return self.health if self.health is not None else ""

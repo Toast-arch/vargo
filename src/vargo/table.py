@@ -1,5 +1,7 @@
 import curses
 
+from .statics import ApplicationReport
+
 def render_table(tablewin, table_size: int, width: int, title: str, table_index_bar: list, table_content, scroll_index: int, selected_line: int):
     tablewin.erase()
     
@@ -64,7 +66,7 @@ def render_content(tablewin, table_size, width, attribute_slot_len, table_conten
     
     render_applications(tablewin, table_size, width, attribute_slot_len, table_content, scroll_index, selected_line)
 
-def render_applications(tablewin, table_size, width, attribute_slot_len, application_list: list, scroll_index, selected_line):
+def render_applications(tablewin, table_size, width, attribute_slot_len, application_list: list[ApplicationReport], scroll_index, selected_line):
     line_index = 0
     
     if application_list is None or application_list == [] or type(application_list) is not list:
@@ -79,7 +81,7 @@ def render_applications(tablewin, table_size, width, attribute_slot_len, applica
         if line_index - 1 < scroll_index:
             continue
         
-        color_pair_index = 10
+        color_pair_index = 11
         
         if selected_line == line_index - scroll_index:
             color_pair_index += 10
@@ -90,10 +92,10 @@ def render_applications(tablewin, table_size, width, attribute_slot_len, applica
         tablewin.addstr(line_index + 1 - scroll_index, 3, ' '.ljust(width - 6), color_pair)
         
         values = [
-            "" if 'namespace' not in application else application['namespace'],
-            "" if 'name' not in application else application['name'],
-            "" if 'sync' not in application else application['sync'],
-            "" if 'health' not in application else application['health'],
+            application.get_namespace(),
+            application.get_name(),
+            application.get_sync(),
+            application.get_health()
         ]
         
         i = 0

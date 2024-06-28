@@ -1,8 +1,9 @@
 import curses
-import json
 import time
+import yaml
 
-from .statics import APPLICATIONS_INDEX_BAR, VARGO_CONF_PATH
+
+from .statics import APPLICATIONS_INDEX_BAR, VARGO_CONF_PATH, ApplicationReport
 from .statics import VARGO_TABLE_STATUS_APPLICATIONS, TEXTPAD_OFF, TEXTPAD_CMD, TEXTPAD_EDIT, TEXTPAD_FILTER
 from .statics import KEY_DOWN, KEY_ENTER, KEY_Q, KEY_UP, KEY_LEFT, KEY_RIGHT, KEY_A, KEY_BACKSLASH, KEY_BACKSPACE, KEY_COLON, KEY_ESCAPE, KEY_F, KEY_P, KEY_R, KEY_SHIFT_R, KEY_G, KEY_SHIFT_G, KEY_H, KEY_SHIFT_P, KEY_E
 from .statics import curses_init_color_pairs
@@ -13,11 +14,14 @@ from .table import render_table
 from .status_bar import VARGO_Statusbar
 from .confirm_box import VARGO_ConfirmBox
 
+from .argocd_utils import argocd_generate_token, argocd_get_applications
+
 class Vargo:
     def __init__(self, stdscr, debug: bool = False):
         self.debug = debug
         
         self.stdscr = stdscr
+        self.height, self.width = stdscr.getmaxyx()
         
         # INIT CURSES
         curses.noecho()
@@ -27,19 +31,26 @@ class Vargo:
         
         curses_init_color_pairs()
         
+        # FIRST RENDERS
+        render_loading_logo(stdscr, self.width)
+        stdscr.noutrefresh()
+        curses.doupdate()
+        
         # INIT Vargo
         self.vargo_conf = {}
-        # self.get_vargo_conf()
+        self.get_vargo_conf()
+        
+        self.argocd_ip = str(self.vargo_conf['argocd_configuration']['argocd_ip'])
+        self.argocd_port = str(self.vargo_conf['argocd_configuration']['argocd_port'])
+        self.argocd_user = str(self.vargo_conf['argocd_configuration']['argocd_user'])
+        self.argocd_password = str(self.vargo_conf['argocd_configuration']['argocd_password'])
+        
+        self.argocd_token = argocd_generate_token(self.argocd_ip, self.argocd_port, self.argocd_user, self.argocd_password)
         
         # Clearing the screen is mandatory
         self.stdscr.refresh()
         
-        # INIT VARIABLES
-        self.ip = "todo"
-        self.port = "todo"
-                
-        self.height, self.width = stdscr.getmaxyx()
-        
+        # INIT VARIABLES        
         self.header_size = 6
         
         self.table_size = self.height - self.header_size - 1
@@ -79,15 +90,11 @@ class Vargo:
         self.table_title = "Applications"
         self.table_index_bar = APPLICATIONS_INDEX_BAR
         self.table_content = []
+                
+        # INIT PAGE
+        self.go_to_applications_page()
         
-        # FIRST RENDERS
-        render_loading_logo(stdscr, self.width)
-        stdscr.noutrefresh()
-        curses.doupdate()
-        
-        time.sleep(0.5)
-        
-        render_header(self.headerwin, self.header_size, self.width, self.ip, self.port, self.status, self.special_message)
+        render_header(self.headerwin, self.header_size, self.width, self.argocd_ip, self.argocd_port, self.status, self.special_message)
         render_table(self.tablewin, self.table_size, self.width, self.table_title, self.table_index_bar, self.table_content, self.scroll_index, self.selected_line)
         self.statusbar.render()
         
@@ -100,6 +107,7 @@ class Vargo:
         while True:
             key = self.stdscr.getch()
             
+            # Textpad input
             if self.textpad_mode is not TEXTPAD_OFF:
                 if key == KEY_ESCAPE:
                     self.turn_off_keypad()
@@ -112,10 +120,20 @@ class Vargo:
                 else:
                     self.textpad.add_chr(key)
                     self.textpad.render()
+            # Turn on textpad command
             elif key == KEY_COLON and self.textpad is None:
                 self.turn_on_keypad(TEXTPAD_CMD)
+            # Turn on textpad filter
             elif key == KEY_BACKSLASH and self.textpad is None:
                 self.turn_on_keypad(TEXTPAD_FILTER)
+            elif key == KEY_UP:
+                self.scroll_up()
+            elif key == KEY_DOWN:
+                self.scroll_down()
+            elif key == KEY_G:
+                self.scroll_to_top()
+            elif key == KEY_SHIFT_G:
+                self.scroll_to_bottom()
             else:
                 continue
             
@@ -233,14 +251,32 @@ class Vargo:
             pass
         
         self.confirm_cmd = None
-
+    
+    def refresh_applications_page(self):
+        items = argocd_get_applications(self.argocd_ip, self.argocd_port)
+        
+        self.table_content = [
+            ApplicationReport("opensky", "atlas", "Synced", "OK"),
+            ApplicationReport("opensky", "diledge", "Synced", "OK"),
+            ApplicationReport("opensky", "app1", "Synced", "OK"),
+            ApplicationReport("opensky", "app2", "Synced", "OK"),
+            ApplicationReport("opensky", "app3", "Synced", "OK"),
+            ApplicationReport("opensky", "app4", "Synced", "OK"),
+        ]
+        
+    def go_to_applications_page(self):
+        self.status == VARGO_TABLE_STATUS_APPLICATIONS
+        
+        self.refresh_applications_page()
+    
     def get_vargo_conf(self):
         with open(VARGO_CONF_PATH, 'r') as fd:
-            self.vargo_conf = json.load(fd)
+            self.vargo_conf = yaml.safe_load(fd)
 
     def write_vargo_conf(self):
         with open(VARGO_CONF_PATH, 'w') as fd:
-            json.dump(self.vargo_conf, fd, indent=4)
+            yaml.safe_dump(self.vargo_conf, fd, indent=4)
+
 
 def keyboard_worker(stdscr, command_to_render_queue):
     while True:

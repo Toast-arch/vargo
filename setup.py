@@ -2,7 +2,8 @@ import platform
 import setuptools
 
 install_requires_list = [
-    "requests==2.31.0"
+    "requests==2.31.0",
+    "pyyaml==6.0.1"
 ]
 
 if platform.platform() == 'Windows':
