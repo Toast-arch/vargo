@@ -1,0 +1,5 @@
+argocd_configuration:
+  argocd_password: password
+  argocd_port: 8080
+  argocd_ip: localhost
+  argocd_user: admin
